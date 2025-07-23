@@ -144,8 +144,7 @@ dmypy.json
 ehthumbs.db
 Thumbs.db
 
-# PDF files (keeping your merit-ranks PDFs out of version control)
-*.pdf
+
 
 # Temporary files
 *.tmp
