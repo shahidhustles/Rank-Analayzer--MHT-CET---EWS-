@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EWS Rank Analyzer</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        max-width: 500px;
+        width: 100%;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .header h1 {
+        color: #333;
+        font-size: 2.5em;
+        margin-bottom: 10px;
+      }
+
+      .header p {
+        color: #666;
+        font-size: 1.1em;
+      }
+
+      .form-group {
+        margin-bottom: 25px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 600;
+        font-size: 1.1em;
+      }
+
+      input[type="number"] {
+        width: 100%;
+        padding: 15px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 1.1em;
+        transition: border-color 0.3s ease;
+      }
+
+      input[type="number"]:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .btn {
+        width: 100%;
+        padding: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.2em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .btn:active {
+        transform: translateY(0);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .result {
+        margin-top: 25px;
+        padding: 20px;
+        border-radius: 8px;
+        display: none;
+      }
+
+      .result.success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+      }
+
+      .result.error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+      }
+
+      .result h3 {
+        margin-bottom: 10px;
+        font-size: 1.3em;
+      }
+
+      .result p {
+        font-size: 1.1em;
+        line-height: 1.5;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .info-box {
+        background: #e3f2fd;
+        border: 1px solid #bbdefb;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 25px;
+      }
+
+      .info-box h4 {
+        color: #1976d2;
+        margin-bottom: 8px;
+      }
+
+      .info-box p {
+        color: #1976d2;
+        font-size: 0.95em;
+        line-height: 1.4;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🎓 EWS Rank Analyzer</h1>
+        <p>Find your EWS category rank based on merit number</p>
+      </div>
+
+      <div class="info-box">
+        <h4>How it works:</h4>
+        <p>
+          Enter your general merit rank, and we'll analyze the merit list to
+          determine how many EWS candidates are ranked above you, giving you
+          your actual EWS category rank.
+        </p>
+      </div>
+
+      <form id="rankForm">
+        <div class="form-group">
+          <label for="merit_rank">Enter your Merit Rank:</label>
+          <input
+            type="number"
+            id="merit_rank"
+            name="merit_rank"
+            min="1"
+            required
+            placeholder="e.g., 1250"
+          />
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">
+          Analyze EWS Rank
+        </button>
+      </form>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Analyzing PDF... This may take a moment.</p>
+      </div>
+
+      <div class="result" id="result">
+        <h3 id="resultTitle"></h3>
+        <p id="resultMessage"></p>
+      </div>
+    </div>
+
+    <script>
+      document
+        .getElementById("rankForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const submitBtn = document.getElementById("submitBtn");
+          const loading = document.getElementById("loading");
+          const result = document.getElementById("result");
+          const resultTitle = document.getElementById("resultTitle");
+          const resultMessage = document.getElementById("resultMessage");
+
+          // Show loading state
+          submitBtn.disabled = true;
+          loading.style.display = "block";
+          result.style.display = "none";
+
+          try {
+            const formData = new FormData(this);
+            const response = await fetch("/analyze", {
+              method: "POST",
+              body: formData,
+            });
+
+            const data = await response.json();
+
+            // Hide loading
+            loading.style.display = "none";
+            submitBtn.disabled = false;
+
+            // Show result
+            result.style.display = "block";
+
+            if (response.ok) {
+              result.className = "result success";
+              resultTitle.textContent = "✅ Analysis Complete!";
+              resultMessage.innerHTML = `
+                        <strong>Merit Rank:</strong> ${data.merit_rank}<br>
+                        <strong>EWS Rank:</strong> ${data.ews_rank}<br><br>
+                        ${data.message}
+                    `;
+            } else {
+              result.className = "result error";
+              resultTitle.textContent = "❌ Error";
+              resultMessage.textContent = data.error;
+            }
+          } catch (error) {
+            // Hide loading
+            loading.style.display = "none";
+            submitBtn.disabled = false;
+
+            // Show error
+            result.style.display = "block";
+            result.className = "result error";
+            resultTitle.textContent = "❌ Error";
+            resultMessage.textContent =
+              "An unexpected error occurred. Please try again.";
+          }
+        });
+    </script>
+  </body>
+</html>
